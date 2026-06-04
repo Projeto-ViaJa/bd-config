@@ -195,11 +195,7 @@ GROUP BY
     p.canal;
     
     
-    
-    
-    
-    
-    
+
     
 select * from usuario;
 select * from empresa;
@@ -348,8 +344,6 @@ movimento_anterior AS (
 SELECT
     a.destino_uf,
     a.destino_localidade,
-    a.total_passageiros AS passageiros_atual,
-    b.total_passageiros AS passageiros_ano_anterior,
     ROUND(
         (
             a.total_passageiros - b.total_passageiros
@@ -723,3 +717,126 @@ ORDER BY
 -- SELECT QUE SERÁ REALIZADO NA MODEL **
 SELECT * FROM vw_fluxo_rota_mes WHERE destino_localidade = "SÃO PAULO";
 -- --------------------------------------------------------------------------------------------------------------------->
+
+-- --------------------------------------------------------------------------------------------------------------------->
+-- VIEW PARA A KPI DE POSICAO NO RANKING GERAL DAS LOCALIDADES 
+CREATE VIEW vw_posicao_no_ranking_localidade AS
+WITH passageiros_por_destino AS (
+    SELECT
+        destino_localidade,
+        SUM(COALESCE(passageiros_pagos, 0)) AS total_passageiros
+    FROM registro_voo
+    GROUP BY destino_localidade
+),
+ranking AS (
+    SELECT
+        destino_localidade,
+        total_passageiros,
+        DENSE_RANK() OVER (
+            ORDER BY total_passageiros DESC
+        ) AS posicao
+    FROM passageiros_por_destino
+    WHERE total_passageiros >= 5000
+)
+SELECT
+    p.destino_localidade,
+    CASE
+        WHEN p.total_passageiros >= 5000
+        THEN CAST(r.posicao AS CHAR)
+        ELSE 'N/A'
+    END AS ranking_geral
+FROM passageiros_por_destino p
+LEFT JOIN ranking r
+    ON p.destino_localidade = r.destino_localidade
+ORDER BY
+    p.total_passageiros DESC;
+    
+-- SELECT QUE SERÁ REALIZADO NA MODEL *ranking de localidades*
+SELECT * FROM vw_posicao_no_ranking_localidade WHERE destino_localidade = "RIO DE JANEIRO";
+-- --------------------------------------------------------------------------------------------------------------------->
+
+-- --------------------------------------------------------------------------------------------------------------------->
+-- VIEW PARA VIEW DE RANKING DE LOCALIDADES EM CRESCIMENTO
+CREATE VIEW vw_posicao_no_ranking_crescimento_localidade AS
+WITH ultimo_periodo AS (
+    SELECT
+        ano,
+        mes
+    FROM registro_voo
+    ORDER BY ano DESC, mes DESC
+    LIMIT 1
+),
+movimento_atual AS (
+    SELECT
+        destino_localidade,
+        SUM(COALESCE(passageiros_pagos, 0)) AS passageiros_atual
+    FROM registro_voo
+    WHERE (ano, mes) = (
+        SELECT ano, mes
+        FROM ultimo_periodo
+    )
+    GROUP BY destino_localidade
+),
+movimento_anterior AS (
+    SELECT
+        destino_localidade,
+        SUM(COALESCE(passageiros_pagos, 0)) AS passageiros_anterior
+    FROM registro_voo
+    WHERE ano = (
+        SELECT ano - 1
+        FROM ultimo_periodo
+    )
+    AND mes = (
+        SELECT mes
+        FROM ultimo_periodo
+    )
+    GROUP BY destino_localidade
+),
+crescimento AS (
+    SELECT
+        a.destino_localidade,
+        ROUND(
+            (
+                a.passageiros_atual -
+                b.passageiros_anterior
+            ) * 100.0 /
+            b.passageiros_anterior,
+            2
+        ) AS crescimento_percentual
+    FROM movimento_atual a
+    INNER JOIN movimento_anterior b
+        ON a.destino_localidade = b.destino_localidade
+    WHERE b.passageiros_anterior >= 1000
+),
+ranking AS (
+    SELECT
+        destino_localidade,
+        DENSE_RANK() OVER (
+            ORDER BY crescimento_percentual DESC
+        ) AS posicao
+    FROM crescimento
+)
+SELECT
+    destinos.destino_localidade,
+    CASE
+        WHEN r.posicao IS NOT NULL
+        THEN CAST(r.posicao AS CHAR)
+        ELSE 'N/A'
+    END AS ranking_crescimento
+FROM (
+    SELECT DISTINCT destino_localidade
+    FROM registro_voo
+) destinos
+LEFT JOIN ranking r
+    ON destinos.destino_localidade = r.destino_localidade
+ORDER BY
+    CASE
+        WHEN r.posicao IS NULL THEN 999999
+        ELSE r.posicao
+    END,
+    destinos.destino_localidade;
+    
+-- SELECT QUE SERÁ REALIZADO NA MODEL *ranking de crescimento*
+SELECT * FROM vw_posicao_no_ranking_crescimento_localidade WHERE destino_localidade = "JUAZEIRO DO NORTE";
+-- --------------------------------------------------------------------------------------------------------------------->
+
