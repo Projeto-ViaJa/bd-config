@@ -643,4 +643,3 @@ ORDER BY
 -- SELECT QUE SERÁ REALIZADO NA MODEL *ranking de crescimento*
 SELECT * FROM vw_posicao_no_ranking_crescimento_localidade WHERE destino_localidade = "JUAZEIRO DO NORTE";
 -- --------------------------------------------------------------------------------------------------------------------->
-
