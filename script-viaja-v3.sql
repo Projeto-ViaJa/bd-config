@@ -28,7 +28,6 @@ CREATE TABLE IF NOT EXISTS usuario (
 
 SELECT * FROM  usuario;
 
-
 -- CRIANDO TABELA CALENDÁRIO --
 CREATE TABLE IF NOT EXISTS eventosRegistrados(
     idEventosRegistrados INT PRIMARY KEY AUTO_INCREMENT,
