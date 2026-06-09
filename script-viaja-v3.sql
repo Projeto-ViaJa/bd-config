@@ -223,8 +223,6 @@ GROUP BY destino_uf, destino_localidade
 ORDER BY total_passageiros_mes DESC
 LIMIT 1;
 
-
-
 -- SELECT QUE SERÁ REALIZADO NA MODEL *destino #1*
 SELECT * FROM vw_destino_n1_ultimo_mes;
 -- --------------------------------------------------------------------------------------------------------------------->
@@ -296,7 +294,6 @@ SELECT
 FROM mes_atual ma
 CROSS JOIN media_historica mh;
     
-
 -- SELECT QUE SERÁ REALIZADO NA MODEL *indice sazonalidade*
 SELECT * FROM vw_sazonalidade_comparando_mes_com_historico;
 -- --------------------------------------------------------------------------------------------------------------------->     
@@ -368,18 +365,13 @@ LIMIT 1;
 SELECT * FROM vw_destino_n1_crescimento;
 -- --------------------------------------------------------------------------------------------------------------------->    
 
-SELECT * FROM vw_volume_de_turistas_mensal_local_especifico
-        WHERE destino_localidade like "%rio de%";
-
 -- --------------------------------------------------------------------------------------------------------------------->
 -- VIEW PARA GRAFICO DE TOP 5 CRESCIMENTOS PERCENTUAIS DOS ESTADOS EM RELACAO AO ANO ANTERIOR
-drop view vw_crescimento_estado_em_relacao_ao_mesmo_no_ano_anterior;
 CREATE VIEW vw_crescimento_estado_em_relacao_ao_mesmo_no_ano_anterior AS 
 WITH ultimo_ano AS (
     SELECT MAX(ano) AS ano
     FROM registro_voo
 ),
-
 movimento_atual AS (
     SELECT
         ano,
@@ -396,7 +388,6 @@ movimento_atual AS (
         mes,
         destino_uf
 ),
-
 movimento_anterior AS (
     SELECT
         ano,
@@ -413,12 +404,10 @@ movimento_anterior AS (
         mes,
         destino_uf
 )
-
 SELECT
     a.ano,
     a.mes,
     a.destino_uf,
-
     CASE
         WHEN b.passageiros_anterior >= 10000 THEN
             ROUND(
@@ -431,13 +420,10 @@ SELECT
             )
         ELSE NULL
     END AS crescimento_percentual
-
 FROM movimento_atual a
-
 LEFT JOIN movimento_anterior b
     ON a.destino_uf = b.destino_uf
    AND a.mes = b.mes
-
 ORDER BY
     a.mes,
     crescimento_percentual DESC;
@@ -554,7 +540,7 @@ SELECT * FROM vw_pesquisar_localidades;
 -- DASHBOARD ESPECIFICA
 -- --------------------------------------------------------------------------------------------------------------------->
 -- VIEW PARA KPI VOLUME DE TURISTAS MENSAL 
--- CREATE VIEW vw_volume_de_turistas_mensal_local_especifico AS 
+CREATE VIEW vw_volume_de_turistas_mensal_local_especifico AS 
 WITH ultimo_periodo AS (
     SELECT
         ano,
